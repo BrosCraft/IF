@@ -69,7 +69,7 @@ public class GuiListener implements Listener {
 
         //loop through the panes reverse, because the pane with the highest priority (last in list) is most likely to have the correct item
         for (int i = panes.size() - 1; i >= 0; i--) {
-            if (panes.get(i).click(gui, event, 0, 0, 9, gui.getRows() + 4))
+            if (panes.get(i).click(gui, event, 0, 0, gui.getType().getMaxLength(), gui.getRows() + 4))
                 break;
         }
     }

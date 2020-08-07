@@ -13,7 +13,11 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -53,7 +57,7 @@ public class MasonryPane extends Pane implements Orientable {
 
     @Override
     public void display(@NotNull Gui gui, @NotNull Inventory inventory, @NotNull PlayerInventory playerInventory,
-                        int paneOffsetX, int paneOffsetY, int maxLength, int maxHeight) {
+        int paneOffsetX, int paneOffsetY, int maxLength, int maxHeight) {
         int length = Math.min(this.length, maxLength) - paneOffsetX;
         int height = Math.min(this.height, maxHeight) - paneOffsetY;
 
@@ -101,7 +105,7 @@ public class MasonryPane extends Pane implements Orientable {
                                 paneOffsetY + getY(),
                                 Math.min(this.length, maxLength),
                                 Math.min(this.height, maxHeight)
-                            );
+                                        );
                             break outerLoop;
                         }
                     }
@@ -141,7 +145,7 @@ public class MasonryPane extends Pane implements Orientable {
                                 paneOffsetY + getY(),
                                 Math.min(this.length, maxLength),
                                 Math.min(this.height, maxHeight)
-                            );
+                                        );
                             break outerLoop;
                         }
                     }
@@ -152,7 +156,7 @@ public class MasonryPane extends Pane implements Orientable {
 
     @Override
     public boolean click(@NotNull Gui gui, @NotNull InventoryClickEvent event, int paneOffsetX, int paneOffsetY,
-                         int maxLength, int maxHeight) {
+        int maxLength, int maxHeight) {
         int length = Math.min(this.length, maxLength);
         int height = Math.min(this.height, maxHeight);
 
@@ -163,19 +167,18 @@ public class MasonryPane extends Pane implements Orientable {
         int x, y;
 
         if (inventory != null && inventory.equals(view.getBottomInventory())) {
-            x = (slot % 9) - getX() - paneOffsetX;
-            y = ((slot / 9) + gui.getRows() - 1) - getY() - paneOffsetY;
+            x = (slot % gui.getType().getMaxLength()) - getX() - paneOffsetX;
+            y = ((slot / gui.getType().getMaxLength()) + gui.getRows() - 1) - getY() - paneOffsetY;
 
-            if (slot / 9 == 0) {
+            if (slot / gui.getType().getMaxLength() == 0) {
                 y = (gui.getRows() + 3) - getY() - paneOffsetY;
             }
         } else {
-            x = (slot % 9) - getX() - paneOffsetX;
-            y = (slot / 9) - getY() - paneOffsetY;
+            x = (slot % gui.getType().getMaxLength()) - getX() - paneOffsetX;
+            y = (slot / gui.getType().getMaxLength()) - getY() - paneOffsetY;
         }
 
-        if (x < 0 || x >= length || y < 0 || y >= height)
-            return false;
+        if (x < 0 || x >= length || y < 0 || y >= height) { return false; }
 
         callOnClick(event);
 
@@ -190,26 +193,27 @@ public class MasonryPane extends Pane implements Orientable {
     }
 
     @NotNull
-	@Contract(pure = true)
-	@Override
+    @Contract(pure = true)
+    @Override
     public MasonryPane copy() {
-		MasonryPane masonryPane = new MasonryPane(x, y, length, height, getPriority());
+        MasonryPane masonryPane = new MasonryPane(x, y, length, height, getPriority());
 
-		for (Pane pane : panes) {
+        for (Pane pane : panes) {
             masonryPane.addPane(pane.copy());
         }
 
         masonryPane.setVisible(isVisible());
-		masonryPane.onClick = onClick;
-		masonryPane.orientation = orientation;
+        masonryPane.onClick = onClick;
+        masonryPane.orientation = orientation;
 
-		return masonryPane;
-	}
+        return masonryPane;
+    }
 
     /**
      * Adds a pane to this masonry pane
      *
      * @param pane the pane to add
+     *
      * @since 0.3.0
      */
     public void addPane(@NotNull Pane pane) {
@@ -255,7 +259,8 @@ public class MasonryPane extends Pane implements Orientable {
      * Loads a masonry pane from a given element
      *
      * @param instance the instance class
-     * @param element the element
+     * @param element  the element
+     *
      * @return the masonry pane
      */
     @NotNull

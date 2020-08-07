@@ -17,7 +17,12 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A pane for items that should be outlined
@@ -90,7 +95,7 @@ public class OutlinePane extends Pane implements Flippable, Orientable, Rotatabl
 
     @Override
     public void display(@NotNull Gui gui, @NotNull Inventory inventory, @NotNull PlayerInventory playerInventory,
-                        int paneOffsetX, int paneOffsetY, int maxLength, int maxHeight) {
+        int paneOffsetX, int paneOffsetY, int maxLength, int maxHeight) {
         int length = Math.min(this.length, maxLength);
         int height = Math.min(this.height, maxHeight);
 
@@ -134,19 +139,16 @@ public class OutlinePane extends Pane implements Flippable, Orientable, Rotatabl
         for (int i = 0; i < (doesRepeat() ? mask.amountOfEnabledSlots() : itemAmount); i++) {
             GuiItem item = items.get(i % itemAmount);
 
-            if (!item.isVisible())
-                continue;
+            if (!item.isVisible()) { continue; }
 
             int newX = x, newY = y;
 
-            if (flipHorizontally)
-                newX = length - x - 1;
+            if (flipHorizontally) { newX = length - x - 1; }
 
-            if (flipVertically)
-                newY = height - y - 1;
+            if (flipVertically) { newY = height - y - 1; }
 
             Map.Entry<Integer, Integer> coordinates = GeometryUtil.processClockwiseRotation(newX, newY, length, height,
-                    rotation);
+                rotation);
 
             newX = coordinates.getKey();
             newY = coordinates.getValue();
@@ -161,10 +163,10 @@ public class OutlinePane extends Pane implements Flippable, Orientable, Rotatabl
                     if (finalRow == gui.getRows() + 3) {
                         playerInventory.setItem(finalColumn, item.getItem());
                     } else {
-                        playerInventory.setItem(((finalRow - gui.getRows()) + 1) * 9 + finalColumn, item.getItem());
+                        playerInventory.setItem(((finalRow - gui.getRows()) + 1) * gui.getType().getMaxLength() + finalColumn, item.getItem());
                     }
                 } else {
-                    inventory.setItem(finalRow * 9 + finalColumn, item.getItem());
+                    inventory.setItem(finalRow * gui.getType().getMaxLength() + finalColumn, item.getItem());
                 }
             }
 
@@ -201,7 +203,7 @@ public class OutlinePane extends Pane implements Flippable, Orientable, Rotatabl
 
     @Override
     public boolean click(@NotNull Gui gui, @NotNull InventoryClickEvent event, int paneOffsetX, int paneOffsetY,
-                         int maxLength, int maxHeight) {
+        int maxLength, int maxHeight) {
         int length = Math.min(this.length, maxLength);
         int height = Math.min(this.height, maxHeight);
 
@@ -212,20 +214,19 @@ public class OutlinePane extends Pane implements Flippable, Orientable, Rotatabl
         int x, y;
 
         if (inventory != null && inventory.equals(inventoryView.getBottomInventory())) {
-            x = (slot % 9) - getX() - paneOffsetX;
-            y = ((slot / 9) + gui.getRows() - 1) - getY() - paneOffsetY;
+            x = (slot % gui.getType().getMaxLength()) - getX() - paneOffsetX;
+            y = ((slot / gui.getType().getMaxLength()) + gui.getRows() - 1) - getY() - paneOffsetY;
 
-            if (slot / 9 == 0) {
+            if (slot / gui.getType().getMaxLength() == 0) {
                 y = (gui.getRows() + 3) - getY() - paneOffsetY;
             }
         } else {
-            x = (slot % 9) - getX() - paneOffsetX;
-            y = (slot / 9) - getY() - paneOffsetY;
+            x = (slot % gui.getType().getMaxLength()) - getX() - paneOffsetX;
+            y = (slot / gui.getType().getMaxLength()) - getY() - paneOffsetY;
         }
 
         //this isn't our item
-        if (x < 0 || x >= length || y < 0 || y >= height)
-            return false;
+        if (x < 0 || x >= length || y < 0 || y >= height) { return false; }
 
         callOnClick(event);
 
@@ -286,7 +287,7 @@ public class OutlinePane extends Pane implements Flippable, Orientable, Rotatabl
     /**
      * Adds a gui item in the specified index
      *
-     * @param item the item to add
+     * @param item  the item to add
      * @param index the item's index
      */
     public void insertItem(@NotNull GuiItem item, int index) {
@@ -306,6 +307,7 @@ public class OutlinePane extends Pane implements Flippable, Orientable, Rotatabl
      * Removes the specified item from the pane
      *
      * @param item the item to remove
+     *
      * @since 0.5.8
      */
     public void removeItem(@NotNull GuiItem item) {
@@ -322,6 +324,7 @@ public class OutlinePane extends Pane implements Flippable, Orientable, Rotatabl
      * differs from this pane's dimension.
      *
      * @param mask the mask to apply to this pane
+     *
      * @throws IllegalArgumentException when the mask's dimension is incorrect
      * @since 0.5.16
      */
@@ -403,6 +406,7 @@ public class OutlinePane extends Pane implements Flippable, Orientable, Rotatabl
      * Gets the mask applied to this pane.
      *
      * @return the mask
+     *
      * @since 0.6.2
      */
     @NotNull
@@ -445,7 +449,8 @@ public class OutlinePane extends Pane implements Flippable, Orientable, Rotatabl
      * Loads an outline pane from a given element
      *
      * @param instance the instance class
-     * @param element the element
+     * @param element  the element
+     *
      * @return the outline pane
      */
     @NotNull
@@ -456,32 +461,27 @@ public class OutlinePane extends Pane implements Flippable, Orientable, Rotatabl
                 Integer.parseInt(element.getAttribute("height"))
             );
 
-            if (element.hasAttribute("gap"))
-                outlinePane.setGap(Integer.parseInt(element.getAttribute("gap")));
+            if (element.hasAttribute("gap")) { outlinePane.setGap(Integer.parseInt(element.getAttribute("gap"))); }
 
-            if (element.hasAttribute("repeat"))
-                outlinePane.setRepeat(Boolean.parseBoolean(element.getAttribute("repeat")));
+            if (element.hasAttribute("repeat")) { outlinePane.setRepeat(Boolean.parseBoolean(element.getAttribute("repeat"))); }
 
             Pane.load(outlinePane, instance, element);
             Flippable.load(outlinePane, element);
             Orientable.load(outlinePane, element);
             Rotatable.load(outlinePane, element);
 
-            if (element.hasAttribute("populate"))
-                return outlinePane;
+            if (element.hasAttribute("populate")) { return outlinePane; }
 
             NodeList childNodes = element.getChildNodes();
 
             for (int i = 0; i < childNodes.getLength(); i++) {
                 Node item = childNodes.item(i);
 
-                if (item.getNodeType() != Node.ELEMENT_NODE)
-                    continue;
+                if (item.getNodeType() != Node.ELEMENT_NODE) { continue; }
 
-                if (item.getNodeName().equals("empty"))
-                    outlinePane.addItem(new GuiItem(new ItemStack(Material.AIR)));
-                else
+                if (item.getNodeName().equals("empty")) { outlinePane.addItem(new GuiItem(new ItemStack(Material.AIR))); } else {
                     outlinePane.addItem(Pane.loadItem(instance, (Element) item));
+                }
             }
 
             return outlinePane;

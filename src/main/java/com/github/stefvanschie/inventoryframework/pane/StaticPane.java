@@ -65,7 +65,7 @@ public class StaticPane extends Pane implements Flippable, Rotatable {
 			GuiItem item = entry.getValue();
 			Map.Entry<Integer, Integer> location = entry.getKey();
 
-			return item.isVisible() && location.getKey() + paneOffsetX <= 9 && location.getValue() + paneOffsetY <= 6;
+			return item.isVisible() && location.getKey() + paneOffsetX <= gui.getType().getMaxLength() && location.getValue() + paneOffsetY <= gui.getType().getMaxHeight();
 		}).forEach(entry -> {
 			Map.Entry<Integer, Integer> location = entry.getKey();
 
@@ -98,10 +98,10 @@ public class StaticPane extends Pane implements Flippable, Rotatable {
 			    if (finalRow == gui.getRows() + 3) {
 			        playerInventory.setItem(finalColumn, item);
                 } else {
-			        playerInventory.setItem(((finalRow - gui.getRows()) + 1) * 9 + finalColumn, item);
+			        playerInventory.setItem(((finalRow - gui.getRows()) + 1) * gui.getType().getMaxLength() + finalColumn, item);
                 }
             } else {
-                inventory.setItem(finalRow * 9 + finalColumn, item);
+                inventory.setItem(finalRow * gui.getType().getMaxLength() + finalColumn, item);
             }
 		});
 	}
@@ -143,15 +143,15 @@ public class StaticPane extends Pane implements Flippable, Rotatable {
         int x, y;
 
         if (inventory != null && inventory.equals(view.getBottomInventory())) {
-            x = (slot % 9) - getX() - paneOffsetX;
-            y = ((slot / 9) + gui.getRows() - 1) - getY() - paneOffsetY;
+            x = (slot % gui.getType().getMaxLength()) - getX() - paneOffsetX;
+            y = ((slot / gui.getType().getMaxLength()) + gui.getRows() - 1) - getY() - paneOffsetY;
 
-            if (slot / 9 == 0) {
+            if (slot / gui.getType().getMaxLength() == 0) {
                 y = (gui.getRows() + 3) - getY() - paneOffsetY;
             }
         } else {
-            x = (slot % 9) - getX() - paneOffsetX;
-            y = (slot / 9) - getY() - paneOffsetY;
+            x = (slot % gui.getType().getMaxLength()) - getX() - paneOffsetX;
+            y = (slot / gui.getType().getMaxLength()) - getY() - paneOffsetY;
         }
 
 		//this isn't our item

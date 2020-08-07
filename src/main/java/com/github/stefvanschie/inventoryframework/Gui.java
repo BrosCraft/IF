@@ -1,8 +1,16 @@
 package com.github.stefvanschie.inventoryframework;
 
 import com.github.stefvanschie.inventoryframework.exception.XMLLoadException;
-import com.github.stefvanschie.inventoryframework.pane.*;
-import com.github.stefvanschie.inventoryframework.pane.component.*;
+import com.github.stefvanschie.inventoryframework.pane.MasonryPane;
+import com.github.stefvanschie.inventoryframework.pane.OutlinePane;
+import com.github.stefvanschie.inventoryframework.pane.PaginatedPane;
+import com.github.stefvanschie.inventoryframework.pane.Pane;
+import com.github.stefvanschie.inventoryframework.pane.StaticPane;
+import com.github.stefvanschie.inventoryframework.pane.component.CycleButton;
+import com.github.stefvanschie.inventoryframework.pane.component.Label;
+import com.github.stefvanschie.inventoryframework.pane.component.PercentageBar;
+import com.github.stefvanschie.inventoryframework.pane.component.Slider;
+import com.github.stefvanschie.inventoryframework.pane.component.ToggleButton;
 import com.github.stefvanschie.inventoryframework.util.XMLUtil;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.bukkit.Bukkit;
@@ -11,6 +19,7 @@ import org.bukkit.entity.HumanEntity;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.plugin.Plugin;
@@ -25,7 +34,12 @@ import org.w3c.dom.NodeList;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.InputStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -37,6 +51,9 @@ import java.util.stream.Collectors;
  * The base class of all GUIs
  */
 public class Gui implements InventoryHolder {
+
+    @NotNull
+    private final GuiType type;
 
     /**
      * A set of all panes in this inventory
@@ -119,8 +136,9 @@ public class Gui implements InventoryHolder {
      * Constructs a new GUI
      *
      * @param plugin the main plugin.
-     * @param rows the amount of rows this gui should contain, in range 1..6.
-     * @param title the title/name of this gui.
+     * @param rows   the amount of rows this gui should contain, in range 1..6.
+     * @param title  the title/name of this gui.
+     *
      * @deprecated use {@link #Gui(int, String)} instead
      */
     @Deprecated
@@ -131,24 +149,48 @@ public class Gui implements InventoryHolder {
     /**
      * Constructs a new GUI
      *
-     * @param rows the amount of rows this gui should contain, in range 1..6.
+     * @param rows  the amount of rows this gui should contain, in range 1..6.
      * @param title the title/name of this gui.
+     *
      * @since 0.6.0
      */
     public Gui(int rows, @NotNull String title) {
-        if (!(rows >= 1 && rows <= 6)) {
-            throw new IllegalArgumentException("Rows should be between 1 and 6");
-        }
+        this(GuiType.DEFAULT, rows, title);
+    }
 
+    public Gui(@NotNull GuiType type, @NotNull String title) {
+        this(type, 1, title);
+    }
+
+    public Gui(@NotNull GuiType type, int rows, @NotNull String title) {
+        this.type = type;
         this.panes = new ArrayList<>();
-        this.inventory = Bukkit.createInventory(this, rows * 9, title);
+        this.inventory = createInventory(type, rows, title);
         this.title = title;
 
         if (!hasRegisteredListeners) {
             Bukkit.getPluginManager().registerEvents(new GuiListener(),
-                    JavaPlugin.getProvidingPlugin(getClass()));
+                JavaPlugin.getProvidingPlugin(getClass()));
 
             hasRegisteredListeners = true;
+        }
+    }
+
+    @NotNull
+    public GuiType getType() {
+        return type;
+    }
+
+    private Inventory createInventory(GuiType type, int rows, String title) {
+        if (type == GuiType.HOPPER) {
+            return Bukkit.createInventory(this, InventoryType.HOPPER, title);
+        } else if (type == GuiType.DROPPER) {
+            return Bukkit.createInventory(this, InventoryType.DROPPER, title);
+        } else {
+            if (!(rows >= 1 && rows <= 6)) {
+                throw new IllegalArgumentException("Rows should be between 1 and 6");
+            }
+            return Bukkit.createInventory(this, rows * 9, title);
         }
     }
 
@@ -178,7 +220,7 @@ public class Gui implements InventoryHolder {
 
         //initialize the inventory first
         panes.stream().filter(Pane::isVisible).forEach(pane -> pane.display(this, inventory,
-            humanEntity.getInventory(), 0, 0, 9, getRows() + 4));
+            humanEntity.getInventory(), 0, 0, type.getMaxLength(), getRows() + 4));
 
         //ensure that the inventory is cached before being overwritten and restore it if we end up not needing the bottom part after all
         if (state == State.TOP) {
@@ -195,25 +237,26 @@ public class Gui implements InventoryHolder {
      * be non-existent for the copied gui. The returned gui will never be reference equal to the current gui.
      *
      * @return a copy of the gui
+     *
      * @since 0.6.2
      */
     @NotNull
     @Contract(pure = true)
     public Gui copy() {
-		Gui gui = new Gui(getRows(), getTitle());
+        Gui gui = new Gui(type, getRows(), getTitle());
 
-		for (Pane pane : panes) {
-			gui.addPane(pane.copy());
-		}
+        for (Pane pane : panes) {
+            gui.addPane(pane.copy());
+        }
 
-		gui.onTopClick = onTopClick;
-		gui.onBottomClick = onBottomClick;
-		gui.onGlobalClick = onGlobalClick;
-		gui.onOutsideClick = onOutsideClick;
-		gui.onClose = onClose;
+        gui.onTopClick = onTopClick;
+        gui.onBottomClick = onBottomClick;
+        gui.onGlobalClick = onGlobalClick;
+        gui.onOutsideClick = onOutsideClick;
+        gui.onClose = onClose;
 
-		return gui;
-	}
+        return gui;
+    }
 
     /**
      * Sets the amount of rows for this inventory.
@@ -222,6 +265,9 @@ public class Gui implements InventoryHolder {
      * @param rows the amount of rows in range 1..6.
      */
     public void setRows(int rows) {
+        if (type != GuiType.DEFAULT) {
+            throw new IllegalArgumentException("Can't change the rows of HOPPER or DROPPER gui's");
+        }
         if (!(rows >= 1 && rows <= 6)) {
             throw new IllegalArgumentException("Rows should be between 1 and 6");
         }
@@ -229,7 +275,7 @@ public class Gui implements InventoryHolder {
         //copy the viewers
         List<HumanEntity> viewers = getViewers();
 
-        this.inventory = Bukkit.createInventory(this, rows * 9, getTitle());
+        this.inventory = Bukkit.createInventory(this, rows * type.getMaxLength(), getTitle());
 
         viewers.forEach(humanEntity -> humanEntity.openInventory(inventory));
     }
@@ -238,6 +284,7 @@ public class Gui implements InventoryHolder {
      * Gets the count of {@link HumanEntity} instances that are currently viewing this GUI.
      *
      * @return the count of viewers
+     *
      * @since 0.5.19
      */
     @Contract(pure = true)
@@ -250,6 +297,7 @@ public class Gui implements InventoryHolder {
      * This is a snapshot (copy) and not a view, therefore modifications aren't visible.
      *
      * @return a snapshot of the current viewers
+     *
      * @see #getViewerCount()
      * @since 0.5.19
      */
@@ -310,8 +358,7 @@ public class Gui implements InventoryHolder {
 
         getViewers().forEach(this::show);
 
-        if (!updating)
-            throw new AssertionError("Gui#isUpdating became false before Gui#update finished");
+        if (!updating) { throw new AssertionError("Gui#isUpdating became false before Gui#update finished"); }
 
         updating = false;
     }
@@ -321,10 +368,11 @@ public class Gui implements InventoryHolder {
      * stored inventories of the players and will assume no pane extends into the bottom inventory part. If the state is
      * set to bottom state it will assume one or more panes overflow into the bottom half of the inventory and will
      * store all players' inventories and clear those.
-     *
+     * <p>
      * Do not call this method if you just want the player's inventory to be cleared.
      *
      * @param state the new gui state
+     *
      * @since 0.4.0
      */
     public void setState(@NotNull State state) {
@@ -341,6 +389,7 @@ public class Gui implements InventoryHolder {
      * Gets the state of this gui
      *
      * @return the state
+     *
      * @since 0.5.4
      */
     @NotNull
@@ -353,6 +402,7 @@ public class Gui implements InventoryHolder {
      * Gets the human entity cache used for this gui
      *
      * @return the human entity cache
+     *
      * @see HumanEntityCache
      * @since 0.5.4
      */
@@ -366,10 +416,12 @@ public class Gui implements InventoryHolder {
      * Loads a Gui from a given input stream.
      * Returns null instead of throwing an exception in case of a failure.
      *
-     * @param plugin the main plugin
-     * @param instance the class instance for all reflection lookups
+     * @param plugin      the main plugin
+     * @param instance    the class instance for all reflection lookups
      * @param inputStream the file
+     *
      * @return the gui or null if the loading failed
+     *
      * @see #loadOrThrow(Object, InputStream)
      * @deprecated use {@link #load(Object, InputStream)} instead
      */
@@ -383,9 +435,11 @@ public class Gui implements InventoryHolder {
      * Loads a Gui from a given input stream.
      * Returns null instead of throwing an exception in case of a failure.
      *
-     * @param instance the class instance for all reflection lookups
+     * @param instance    the class instance for all reflection lookups
      * @param inputStream the file
+     *
      * @return the gui or null if the loading failed
+     *
      * @see #loadOrThrow(Object, InputStream)
      */
     @Nullable
@@ -402,10 +456,12 @@ public class Gui implements InventoryHolder {
      * Loads a Gui from a given input stream.
      * Throws a {@link RuntimeException} instead of returning null in case of a failure.
      *
-     * @param plugin the main plugin
-     * @param instance the class instance for all reflection lookups
+     * @param plugin      the main plugin
+     * @param instance    the class instance for all reflection lookups
      * @param inputStream the file
+     *
      * @return the gui
+     *
      * @see #load(Object, InputStream)
      * @deprecated use {@link #loadOrThrow(Object, InputStream)} instead
      */
@@ -419,9 +475,11 @@ public class Gui implements InventoryHolder {
      * Loads a Gui from a given input stream.
      * Throws a {@link RuntimeException} instead of returning null in case of a failure.
      *
-     * @param instance the class instance for all reflection lookups
+     * @param instance    the class instance for all reflection lookups
      * @param inputStream the file
+     *
      * @return the gui
+     *
      * @see #load(Object, InputStream)
      */
     @NotNull
@@ -434,34 +492,33 @@ public class Gui implements InventoryHolder {
             documentElement.normalize();
 
             Gui gui = new Gui(plugin, Integer.parseInt(documentElement.getAttribute("rows")), ChatColor
-                    .translateAlternateColorCodes('&', documentElement.getAttribute("title")));
+                .translateAlternateColorCodes('&', documentElement.getAttribute("title")));
 
-            if (documentElement.hasAttribute("field"))
-                XMLUtil.loadFieldAttribute(instance, documentElement, gui);
+            if (documentElement.hasAttribute("field")) { XMLUtil.loadFieldAttribute(instance, documentElement, gui); }
 
             if (documentElement.hasAttribute("onTopClick")) {
                 gui.setOnTopClick(XMLUtil.loadOnEventAttribute(instance,
-                        documentElement, InventoryClickEvent.class, "onTopClick"));
+                    documentElement, InventoryClickEvent.class, "onTopClick"));
             }
 
             if (documentElement.hasAttribute("onBottomClick")) {
                 gui.setOnBottomClick(XMLUtil.loadOnEventAttribute(instance,
-                        documentElement, InventoryClickEvent.class, "onBottomClick"));
+                    documentElement, InventoryClickEvent.class, "onBottomClick"));
             }
 
             if (documentElement.hasAttribute("onGlobalClick")) {
                 gui.setOnGlobalClick(XMLUtil.loadOnEventAttribute(instance,
-                        documentElement, InventoryClickEvent.class, "onGlobalClick"));
+                    documentElement, InventoryClickEvent.class, "onGlobalClick"));
             }
 
             if (documentElement.hasAttribute("onOutsideClick")) {
                 gui.setOnOutsideClick(XMLUtil.loadOnEventAttribute(instance,
-                        documentElement, InventoryClickEvent.class, "onOutsideClick"));
+                    documentElement, InventoryClickEvent.class, "onOutsideClick"));
             }
 
             if (documentElement.hasAttribute("onClose")) {
                 gui.setOnClose(XMLUtil.loadOnEventAttribute(instance,
-                        documentElement, InventoryCloseEvent.class, "onClose"));
+                    documentElement, InventoryCloseEvent.class, "onClose"));
             }
 
             if (documentElement.hasAttribute("populate")) {
@@ -471,15 +528,14 @@ public class Gui implements InventoryHolder {
                 for (int i = 0; i < childNodes.getLength(); i++) {
                     Node item = childNodes.item(i);
 
-                    if (item.getNodeType() == Node.ELEMENT_NODE)
-                        gui.addPane(loadPane(instance, item));
+                    if (item.getNodeType() == Node.ELEMENT_NODE) { gui.addPane(loadPane(instance, item)); }
                 }
             }
 
             return gui;
         } catch (Exception e) {
             throw new XMLLoadException("Error loading " + plugin.getName() + "'s gui with associated class: "
-                    + instance.getClass().getSimpleName(), e);
+                + instance.getClass().getSimpleName(), e);
         }
     }
 
@@ -498,6 +554,7 @@ public class Gui implements InventoryHolder {
      * Catches and logs all exceptions the consumer might throw.
      *
      * @param event the event to handle
+     *
      * @since 0.6.0
      */
     public void callOnTopClick(@NotNull InventoryClickEvent event) {
@@ -519,6 +576,7 @@ public class Gui implements InventoryHolder {
      * Catches and logs all exceptions the consumer might throw.
      *
      * @param event the event to handle
+     *
      * @since 0.6.0
      */
     public void callOnBottomClick(@NotNull InventoryClickEvent event) {
@@ -540,6 +598,7 @@ public class Gui implements InventoryHolder {
      * Catches and logs all exceptions the consumer might throw.
      *
      * @param event the event to handle
+     *
      * @since 0.6.0
      */
     public void callOnGlobalClick(@NotNull InventoryClickEvent event) {
@@ -550,6 +609,7 @@ public class Gui implements InventoryHolder {
      * Set the consumer that should be called whenever a player clicks outside the gui.
      *
      * @param onOutsideClick the consumer that gets called
+     *
      * @since 0.5.7
      */
     public void setOnOutsideClick(@Nullable Consumer<InventoryClickEvent> onOutsideClick) {
@@ -562,6 +622,7 @@ public class Gui implements InventoryHolder {
      * Catches and logs all exceptions the consumer might throw.
      *
      * @param event the event to handle
+     *
      * @since 0.6.0
      */
     public void callOnOutsideClick(@NotNull InventoryClickEvent event) {
@@ -583,6 +644,7 @@ public class Gui implements InventoryHolder {
      * Catches and logs all exceptions the consumer might throw.
      *
      * @param event the event to handle
+     *
      * @since 0.6.0
      */
     public void callOnClose(@NotNull InventoryCloseEvent event) {
@@ -593,13 +655,13 @@ public class Gui implements InventoryHolder {
      * Calls the specified consumer (if it's not null) with the specified parameter,
      * catching and logging all exceptions it might throw.
      *
-     * @param callback the consumer to call if it isn't null
-     * @param event the value the consumer should accept
+     * @param callback     the consumer to call if it isn't null
+     * @param event        the value the consumer should accept
      * @param callbackName the name of the action, used for logging
-     * @param <T> the type of the value the consumer is accepting
+     * @param <T>          the type of the value the consumer is accepting
      */
     private <T extends InventoryEvent> void callCallback(@Nullable Consumer<T> callback,
-            @NotNull T event, @NotNull String callbackName) {
+        @NotNull T event, @NotNull String callbackName) {
         if (callback == null) {
             return;
         }
@@ -623,7 +685,7 @@ public class Gui implements InventoryHolder {
      * @return the amount of rows
      */
     public int getRows() {
-        return inventory.getSize() / 9;
+        return inventory.getSize() / type.getMaxLength();
     }
 
     /**
@@ -648,6 +710,7 @@ public class Gui implements InventoryHolder {
      * and false otherwise.
      *
      * @return whether this gui is being updated
+     *
      * @since 0.5.15
      */
     @Contract(pure = true)
@@ -660,8 +723,9 @@ public class Gui implements InventoryHolder {
      *
      * @param attributeName the name of the property. This is the same name you'll be using to specify the property
      *                      type in the XML file.
-     * @param function how the property should be processed. This converts the raw text input from the XML node value
-     *                 into the correct object type.
+     * @param function      how the property should be processed. This converts the raw text input from the XML node value
+     *                      into the correct object type.
+     *
      * @throws IllegalArgumentException when a property with this name is already registered.
      */
     public static void registerProperty(@NotNull String attributeName, @NotNull Function<String, Object> function) {
@@ -671,8 +735,9 @@ public class Gui implements InventoryHolder {
     /**
      * Registers a name that can be used inside an XML file to add custom panes
      *
-     * @param name the name of the pane to be used in the XML file
+     * @param name       the name of the pane to be used in the XML file
      * @param biFunction how the pane loading should be processed
+     *
      * @throws IllegalArgumentException when a pane with this name is already registered
      */
     public static void registerPane(@NotNull String name, @NotNull BiFunction<Object, Element, Pane> biFunction) {
@@ -687,7 +752,8 @@ public class Gui implements InventoryHolder {
      * Loads a pane by the given instance and node
      *
      * @param instance the instance
-     * @param node the node
+     * @param node     the node
+     *
      * @return the pane
      */
     @NotNull

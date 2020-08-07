@@ -45,15 +45,15 @@ public class PercentageBar extends VariableBar {
         int x, y;
 
         if (inventory != null && inventory.equals(view.getBottomInventory())) {
-            x = (slot % 9) - getX() - paneOffsetX;
-            y = ((slot / 9) + gui.getRows() - 1) - getY() - paneOffsetY;
+            x = (slot % gui.getType().getMaxLength()) - getX() - paneOffsetX;
+            y = ((slot / gui.getType().getMaxLength()) + gui.getRows() - 1) - getY() - paneOffsetY;
 
-            if (slot / 9 == 0) {
+            if (slot / gui.getType().getMaxLength() == 0) {
                 y = (gui.getRows() + 3) - getY() - paneOffsetY;
             }
         } else {
-            x = (slot % 9) - getX() - paneOffsetX;
-            y = (slot / 9) - getY() - paneOffsetY;
+            x = (slot % gui.getType().getMaxLength()) - getX() - paneOffsetX;
+            y = (slot / gui.getType().getMaxLength()) - getY() - paneOffsetY;
         }
 
         if (x < 0 || x >= length || y < 0 || y >= height) {
