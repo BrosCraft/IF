@@ -36,6 +36,7 @@ public class GuiListener implements Listener {
      * Handles clicks in inventories
      *
      * @param event the event fired
+     *
      * @since 0.5.4
      */
     @EventHandler(ignoreCancelled = true)
@@ -69,8 +70,7 @@ public class GuiListener implements Listener {
 
         //loop through the panes reverse, because the pane with the highest priority (last in list) is most likely to have the correct item
         for (int i = panes.size() - 1; i >= 0; i--) {
-            if (panes.get(i).click(gui, event, 0, 0, gui.getType().getMaxLength(), gui.getRows() + 4))
-                break;
+            if (panes.get(i).click(gui, event, 0, 0, gui.getType().getMaxLength(), gui.getRows() + 4)) { break; }
         }
     }
 
@@ -78,6 +78,7 @@ public class GuiListener implements Listener {
      * Handles users picking up items while their bottom inventory is in use.
      *
      * @param event the event fired when an entity picks up an item
+     *
      * @since 0.6.1
      */
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
@@ -118,6 +119,7 @@ public class GuiListener implements Listener {
      * will fire a click event.
      *
      * @param event the event fired
+     *
      * @since 0.6.1
      */
     @EventHandler
@@ -129,6 +131,12 @@ public class GuiListener implements Listener {
         Set<Integer> inventorySlots = event.getInventorySlots();
 
         if (inventorySlots.size() > 1) {
+            Gui gui = (Gui) event.getInventory().getHolder();
+            if (!gui.isInventoryDragEnabled()) {
+                event.setCancelled(true);
+                return;
+            }
+            gui.callOnDrag(event);
             return;
         }
 
@@ -154,6 +162,7 @@ public class GuiListener implements Listener {
      * Handles closing in inventories
      *
      * @param event the event fired
+     *
      * @since 0.5.4
      */
     @EventHandler(ignoreCancelled = true)
@@ -179,6 +188,7 @@ public class GuiListener implements Listener {
      * Registers newly opened inventories
      *
      * @param event the event fired
+     *
      * @since 0.5.19
      */
     @EventHandler(ignoreCancelled = true)
@@ -195,6 +205,7 @@ public class GuiListener implements Listener {
      * Handles the disabling of the plugin
      *
      * @param event the event fired
+     *
      * @since 0.5.19
      */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -205,7 +216,7 @@ public class GuiListener implements Listener {
         }
 
         int counter = 0; //callbacks might open GUIs, eg. in nested menus
-		int maxCount = 10;
+        int maxCount = 10;
         while (!activeGuiInstances.isEmpty() && counter++ < maxCount) {
             for (Gui gui : new ArrayList<>(activeGuiInstances)) {
                 for (HumanEntity viewer : gui.getViewers()) {
@@ -215,8 +226,8 @@ public class GuiListener implements Listener {
         }
 
         if (counter == maxCount) {
-			thisPlugin.getLogger().warning("Unable to close GUIs on plugin disable: they keep getting opened "
-					+ "(tried: " + maxCount + " times)");
-		}
+            thisPlugin.getLogger().warning("Unable to close GUIs on plugin disable: they keep getting opened "
+                + "(tried: " + maxCount + " times)");
+        }
     }
 }

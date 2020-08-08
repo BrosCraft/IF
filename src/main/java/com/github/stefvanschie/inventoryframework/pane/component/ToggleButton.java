@@ -36,6 +36,8 @@ public class ToggleButton extends Pane {
      */
     private boolean enabled = false;
 
+    private boolean toggleOnClick = true;
+
     public ToggleButton(int x, int y, int length, int height, @NotNull Priority priority) {
         this(x, y, length, height);
 
@@ -63,7 +65,7 @@ public class ToggleButton extends Pane {
 
     @Override
     public void display(@NotNull Gui gui, @NotNull Inventory inventory, @NotNull PlayerInventory playerInventory,
-                        int paneOffsetX, int paneOffsetY, int maxLength, int maxHeight) {
+        int paneOffsetX, int paneOffsetY, int maxLength, int maxHeight) {
         int newX = paneOffsetX + x;
         int newY = paneOffsetY + y;
 
@@ -79,7 +81,7 @@ public class ToggleButton extends Pane {
 
     @Override
     public boolean click(@NotNull Gui gui, @NotNull InventoryClickEvent event, int paneOffsetX, int paneOffsetY,
-                         int maxLength, int maxHeight) {
+        int maxLength, int maxHeight) {
         int length = Math.min(this.length, maxLength);
         int height = Math.min(this.height, maxHeight);
 
@@ -117,9 +119,11 @@ public class ToggleButton extends Pane {
             disabledPane.click(gui, event, newX, newY, length, height);
         }
 
-        toggle();
+        if (toggleOnClick) {
+            toggle();
 
-        gui.update();
+            gui.update();
+        }
 
         return true;
     }
@@ -145,6 +149,7 @@ public class ToggleButton extends Pane {
      * Sets the item to use when the button is set to disabled
      *
      * @param item the disabled item
+     *
      * @since 0.5.0
      */
     public void setDisabledItem(@NotNull GuiItem item) {
@@ -157,6 +162,7 @@ public class ToggleButton extends Pane {
      * Sets the item to use when the button is set to enabled
      *
      * @param item the enabled item
+     *
      * @since 0.5.0
      */
     public void setEnabledItem(@NotNull GuiItem item) {
@@ -189,12 +195,22 @@ public class ToggleButton extends Pane {
     @Override
     public void clear() {}
 
+    public boolean isToggleOnClick() {
+        return toggleOnClick;
+    }
+
+    public void setToggleOnClick(boolean toggleOnClick) {
+        this.toggleOnClick = toggleOnClick;
+    }
+
     /**
      * Loads a toggle button from an XML element
      *
      * @param instance the instance class
-     * @param element the element
+     * @param element  the element
+     *
      * @return the toggle button
+     *
      * @since 0.5.0
      */
     @NotNull
@@ -218,5 +234,9 @@ public class ToggleButton extends Pane {
         }
 
         return toggleButton;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
     }
 }

@@ -18,6 +18,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
@@ -115,6 +116,9 @@ public class Gui implements InventoryHolder {
     @Nullable
     private Consumer<InventoryCloseEvent> onClose;
 
+    @Nullable
+    private Consumer<InventoryDragEvent> onDrag;
+
     /**
      * Whether this gui is updating (as invoked by {@link #update()}), true if this is the case, false otherwise. This
      * is used to indicate that inventory close events due to updating should be ignored.
@@ -131,6 +135,8 @@ public class Gui implements InventoryHolder {
      * Whether listeners have ben registered by some gui
      */
     private static boolean hasRegisteredListeners;
+
+    private boolean inventoryDragEnabled = true;
 
     /**
      * Constructs a new GUI
@@ -651,6 +657,14 @@ public class Gui implements InventoryHolder {
         callCallback(onClose, event, "onClose");
     }
 
+    public void setOnDrag(@NotNull Consumer<InventoryDragEvent> onDrag) {
+        this.onDrag = onDrag;
+    }
+
+    public void callOnDrag(@NotNull InventoryDragEvent event) {
+        callCallback(onDrag, event, "onDrag");
+    }
+
     /**
      * Calls the specified consumer (if it's not null) with the specified parameter,
      * catching and logging all exceptions it might throw.
@@ -781,6 +795,14 @@ public class Gui implements InventoryHolder {
          * @since 0.4.0
          */
         BOTTOM
+    }
+
+    public boolean isInventoryDragEnabled() {
+        return inventoryDragEnabled;
+    }
+
+    public void setInventoryDragEnabled(boolean inventoryDragEnabled) {
+        this.inventoryDragEnabled = inventoryDragEnabled;
     }
 
     static {
