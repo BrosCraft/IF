@@ -233,7 +233,9 @@ public class Gui implements InventoryHolder {
             humanEntityCache.restoreAndForget(humanEntity);
         }
 
-        humanEntity.openInventory(inventory);
+        if (!isUpdating()) {
+            humanEntity.openInventory(inventory);
+        }
     }
 
     /**
