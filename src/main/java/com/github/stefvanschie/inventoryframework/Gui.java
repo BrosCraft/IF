@@ -211,6 +211,10 @@ public class Gui implements InventoryHolder {
         this.panes.sort(Comparator.comparing(Pane::getPriority));
     }
 
+    public void clearPanes() {
+        this.panes.clear();
+    }
+
     /**
      * Shows a gui to a player
      *
